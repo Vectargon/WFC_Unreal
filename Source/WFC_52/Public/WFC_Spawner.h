@@ -11,7 +11,7 @@ class FJsonObject;
 
 //Struct to store the JSON data
 USTRUCT(BlueprintType)
-struct FWFCPrototypes
+struct FWfcPrototypes
 {
 	GENERATED_BODY()
 
@@ -58,7 +58,7 @@ protected:
 
 public:	
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FWFCPrototypes> Prototypes;
+	TArray<FWfcPrototypes> Prototypes;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MapSize;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -74,7 +74,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StartWfcGeneration();
 	UFUNCTION(BlueprintCallable)
-	void LoadJson(FWFCPrototypes PrototypeData);
+	void LoadJson(FWfcPrototypes PrototypeData);
 
 	void InitializeMap();
 	
@@ -93,14 +93,14 @@ public:
 	bool CheckIfFullyCollapsed();
 
 	//Timer
-	double mainTimer = 0;
-	double initializeMapTimer = 0;
-	double collapseLowestEntropyCellTimer = 0;
-	double propagateTimer = 0;
-	double replaceMapTilesTimer = 0;
-	double addCellToPropagationStackTimer = 0;
-	double renderCurrentCellMeshesTimer = 0;
-	double checkIfFullyCollapsedTimer = 0;
+	double MainTimer = 0;
+	double InitializeMapTimer = 0;
+	double CollapseLowestEntropyCellTimer = 0;
+	double PropagateTimer = 0;
+	double ReplaceMapTilesTimer = 0;
+	double AddCellToPropagationStackTimer = 0;
+	double RenderCurrentCellMeshesTimer = 0;
+	double CheckIfFullyCollapsedTimer = 0;
 	
 	
 	FTimerHandle MemberTimerHandle;

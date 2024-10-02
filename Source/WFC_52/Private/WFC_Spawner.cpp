@@ -29,6 +29,7 @@ void AWFC_Spawner::MainLoop()
 		{
 			bFinishedWfc = true;
 
+			//Executes only once at the end: 
 			//Cycle through whole field again at end of loop to catch any non-collapsed field
 			for (int32 i = 0; i < MapTiles.Num(); i++)
 			{
@@ -41,6 +42,7 @@ void AWFC_Spawner::MainLoop()
 		}
 		else
 		{
+			//Find cell with the lowest entropy and collapse it
 			CollapseLowestEntropyCell();
 		}
 	}
@@ -48,7 +50,7 @@ void AWFC_Spawner::MainLoop()
 
 void AWFC_Spawner::InitializeMap()
 {
-	double functionTimer = FPlatformTime::Seconds();
+	double FunctionTimer = FPlatformTime::Seconds();
 	//Initialize MapTiles Coordinates X
 	MapTiles.SetNum(MapSize);
 	//Initialize CurrentMeshes Coordinates X
@@ -66,7 +68,7 @@ void AWFC_Spawner::InitializeMap()
 		//Initialize Static Mesh Component Containers to later fill with Meshes
 		for (int32 j = 0; j < MapSize; j++)
 		{
-			//SpawnComponents for final Meshes
+			//Spawn Component containers for final meshes
 			FinalMeshes[i].Add(NewObject<UStaticMeshComponent>(
 				this,
 				UStaticMeshComponent::StaticClass(),
@@ -122,53 +124,48 @@ void AWFC_Spawner::InitializeMap()
 			}
 		}
 	}
-	initializeMapTimer += FPlatformTime::Seconds() - functionTimer;
+	InitializeMapTimer += FPlatformTime::Seconds() - FunctionTimer;
 }
 
 void AWFC_Spawner::StartWfcGeneration()
 {
-	mainTimer = FPlatformTime::Seconds();
+	MainTimer = FPlatformTime::Seconds();
 	InitializeMap();
 	
 	//Main loop. Check if every cell has been collapsed and if not, collapse the lowest entropy cell
-	//New Timer:
-	//GetWorldTimerManager().SetTimer(MemberTimerHandle, this, &AWFC_Spawner::Timer, .1f, true, 2.0f);
-
-	//Old loop:
 	
 	while(!bFinishedWfc)
 	{
 		MainLoop();
 	}
 	// print time elapsed
-	UE_LOG(LogTemp, Display, TEXT("Full Calculation Time: %f"), FPlatformTime::Seconds() - mainTimer);
-	UE_LOG(LogTemp, Display, TEXT("initializeMap Calculation Time: %f"), initializeMapTimer);
-	UE_LOG(LogTemp, Display, TEXT("collapseLowestEntropyCell Calculation Time: %f"), collapseLowestEntropyCellTimer);
-	UE_LOG(LogTemp, Display, TEXT("propagate Calculation Time: %f"), propagateTimer);
-	UE_LOG(LogTemp, Display, TEXT("replaceMapTiles Calculation Time: %f"), replaceMapTilesTimer);
-	UE_LOG(LogTemp, Display, TEXT("addCellToPropagationStack Calculation Time: %f"), addCellToPropagationStackTimer);
-	UE_LOG(LogTemp, Display, TEXT("renderCurrentCellMeshes Calculation Time: %f"), renderCurrentCellMeshesTimer);
-	UE_LOG(LogTemp, Display, TEXT("checkIfFullyCollapsed Calculation Time: %f"), checkIfFullyCollapsedTimer);	
+	UE_LOG(LogTemp, Display, TEXT("Full Calculation Time: %f"), FPlatformTime::Seconds() - MainTimer);
+	UE_LOG(LogTemp, Display, TEXT("initializeMap Calculation Time: %f"), InitializeMapTimer);
+	UE_LOG(LogTemp, Display, TEXT("collapseLowestEntropyCell Calculation Time: %f"), CollapseLowestEntropyCellTimer);
+	UE_LOG(LogTemp, Display, TEXT("propagate Calculation Time: %f"), PropagateTimer);
+	UE_LOG(LogTemp, Display, TEXT("replaceMapTiles Calculation Time: %f"), ReplaceMapTilesTimer);
+	UE_LOG(LogTemp, Display, TEXT("addCellToPropagationStack Calculation Time: %f"), AddCellToPropagationStackTimer);
+	UE_LOG(LogTemp, Display, TEXT("renderCurrentCellMeshes Calculation Time: %f"), RenderCurrentCellMeshesTimer);
+	UE_LOG(LogTemp, Display, TEXT("checkIfFullyCollapsed Calculation Time: %f"), CheckIfFullyCollapsedTimer);	
 }
 
-void AWFC_Spawner::LoadJson(FWFCPrototypes PrototypeData)
+void AWFC_Spawner::LoadJson(FWfcPrototypes PrototypeData)
 {
 	Prototypes.Insert(PrototypeData, PrototypeData.PrototypeID);
 }
 
 void AWFC_Spawner::CollapseLowestEntropyCell()
 {
-	double functionTimer = FPlatformTime::Seconds();
+	const double FunctionTimer = FPlatformTime::Seconds();
 	TArray<FVector2D> LowestEntropyCoords;
 	int32 LowestEntropySize = 100;
-	FVector2D CollapsingCoord;
 
 	//Filter all cells and find all cells that have the same lowest entropy except 1(1 means it's already collapsed)
 	for (int32 i = 0; i < MapSize; i++)
 	{
 		for (int32 j = 0; j < MapSize; j++)
 		{
-			int32 const Entropy = MapTiles[i][j].Num();
+			const int32 Entropy = MapTiles[i][j].Num();
 			if (Entropy < LowestEntropySize && Entropy != 1)
 			{
 				LowestEntropySize = Entropy;
@@ -183,22 +180,23 @@ void AWFC_Spawner::CollapseLowestEntropyCell()
 	}
 
 	//Find a random cell to collapse out of the filtered list of possible candidates
-	CollapsingCoord = LowestEntropyCoords[FMath::RandRange(0, LowestEntropyCoords.Num() - 1)];
+	const FVector2D CollapsingCoord = LowestEntropyCoords[FMath::RandRange(0, LowestEntropyCoords.Num() - 1)];
 	
-	//Replace chosen collapsing tile with a single prototype ID out of the remaining possible prototype IDs in that cell
-	int32 CollapsedPrototype = MapTiles[CollapsingCoord.X][CollapsingCoord.Y][FMath::RandRange(0, MapTiles[CollapsingCoord.X][CollapsingCoord.Y].Num() - 1)];
+	//Replace chosen collapsing tile with a single random prototype ID out of the remaining possible prototype IDs in that cell
+	const int32 CollapsedPrototype = MapTiles[CollapsingCoord.X][CollapsingCoord.Y][FMath::RandRange(0, MapTiles[CollapsingCoord.X][CollapsingCoord.Y].Num() - 1)];
 	MapTiles[CollapsingCoord.X][CollapsingCoord.Y].SetNum(1);
 	MapTiles[CollapsingCoord.X][CollapsingCoord.Y][0] = CollapsedPrototype;
 	
-	collapseLowestEntropyCellTimer += FPlatformTime::Seconds() - functionTimer;
+	CollapseLowestEntropyCellTimer += FPlatformTime::Seconds() - FunctionTimer;
 	
 	RenderCurrentCellMeshes(CollapsingCoord);
 	Propagate(CollapsingCoord);
 }
 
-void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
+void AWFC_Spawner::Propagate(const FVector2d CellCoordinate)
 {
-	double functionTimer = FPlatformTime::Seconds();
+	//this propagates the changes to the cell to all it's neighbors and their neighbors and deletes all prototype variations that are no longer possible
+	double FunctionTimer = FPlatformTime::Seconds();
 	TArray<FVector2d> PropagatedCells;
 	TArray<int32> PossibleNeighbors;
 	PropagationCoordinateStack.AddUnique(CellCoordinate);
@@ -211,19 +209,19 @@ void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
 		//Add all possible Neighbors to a list
 		for (int32 i = 0; i < MapTiles[PropagationCoordinateStack[0].X][PropagationCoordinateStack[0].Y].Num(); i++)
 		{
-			int32 PrototypeID = MapTiles[PropagationCoordinateStack[0].X][PropagationCoordinateStack[0].Y][i];
+			const int32 PrototypeID = MapTiles[PropagationCoordinateStack[0].X][PropagationCoordinateStack[0].Y][i];
 			for (int32 j = 0; j < Prototypes[PrototypeID].Neighbors_X_Plus.Num(); j++)
 			{
 				PossibleNeighbors.AddUnique(Prototypes[PrototypeID].Neighbors_X_Plus[j]);
 			}
 		}
-		propagateTimer += FPlatformTime::Seconds() - functionTimer;
+		PropagateTimer += FPlatformTime::Seconds() - FunctionTimer;
 		//Replace prototype cells in storage with new list of possible neighbors
 		if (ReplaceMapTiles(PossibleNeighbors, PropagationCoordinateStack[0] + FVector2d(1, 0)))
 		{
 			AddCellToPropagationstack(PropagationCoordinateStack[0] + FVector2d(1, 0), PropagatedCells);
 		}
-		functionTimer = FPlatformTime::Seconds();
+		FunctionTimer = FPlatformTime::Seconds();
 		PossibleNeighbors.Empty();
 
 		//Propagate to X-1
@@ -236,13 +234,13 @@ void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
 				PossibleNeighbors.AddUnique(Prototypes[PrototypeID].Neighbors_X_Minus[j]);
 			}
 		}
-		propagateTimer += FPlatformTime::Seconds() - functionTimer;
+		PropagateTimer += FPlatformTime::Seconds() - FunctionTimer;
 		//Replace prototype cells in storage with new list of possible neighbors
 		if (ReplaceMapTiles(PossibleNeighbors, PropagationCoordinateStack[0] + FVector2d(-1, 0)))
 		{
 			AddCellToPropagationstack(PropagationCoordinateStack[0] + FVector2d(-1, 0), PropagatedCells);
 		}
-		functionTimer = FPlatformTime::Seconds();
+		FunctionTimer = FPlatformTime::Seconds();
 		PossibleNeighbors.Empty();
 
 		//Propagate to Y+1
@@ -255,13 +253,13 @@ void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
 				PossibleNeighbors.AddUnique(Prototypes[PrototypeID].Neighbors_Y_Plus[j]);
 			}
 		}
-		propagateTimer += FPlatformTime::Seconds() - functionTimer;
+		PropagateTimer += FPlatformTime::Seconds() - FunctionTimer;
 		//Replace prototype cells in storage with new list of possible neighbors
 		if (ReplaceMapTiles(PossibleNeighbors, PropagationCoordinateStack[0] + FVector2d(0, 1)))
 		{
 			AddCellToPropagationstack(PropagationCoordinateStack[0] + FVector2d(0, 1), PropagatedCells);
 		}
-		functionTimer = FPlatformTime::Seconds();
+		FunctionTimer = FPlatformTime::Seconds();
 		PossibleNeighbors.Empty();
 
 		//Propagate to Y-1
@@ -274,13 +272,13 @@ void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
 				PossibleNeighbors.AddUnique(Prototypes[PrototypeID].Neighbors_Y_Minus[j]);
 			}
 		}
-		propagateTimer += FPlatformTime::Seconds() - functionTimer;
+		PropagateTimer += FPlatformTime::Seconds() - FunctionTimer;
 		//Replace prototype cells in storage with new list of possible neighbors
 		if (ReplaceMapTiles(PossibleNeighbors, PropagationCoordinateStack[0] + FVector2d(0, -1)))
 		{
 			AddCellToPropagationstack(PropagationCoordinateStack[0] + FVector2d(0, -1), PropagatedCells);
 		}
-		functionTimer = FPlatformTime::Seconds();
+		FunctionTimer = FPlatformTime::Seconds();
 		
 		PossibleNeighbors.Empty();
 
@@ -288,19 +286,19 @@ void AWFC_Spawner::Propagate(FVector2d CellCoordinate)
 		PropagatedCells.AddUnique(PropagationCoordinateStack[0]);
 		PropagationCoordinateStack.RemoveAt(0);
 	}
-	propagateTimer += FPlatformTime::Seconds() - functionTimer;
+	PropagateTimer += FPlatformTime::Seconds() - FunctionTimer;
 }
 
 bool AWFC_Spawner::ReplaceMapTiles(TArray<int32> PossibleNeighbors, FVector2d CellCoordinate)
 {	
-	double functionTimer = FPlatformTime::Seconds();
+	double FunctionTimer = FPlatformTime::Seconds();
 	bool bNeighborlistChanged = false;
 	TArray<int32> TempArray;
 
 	//Exit if CellCoordinate points to cell out of bounds
 	if (CellCoordinate.X >= MapSize || CellCoordinate.Y >= MapSize || CellCoordinate.X < 0 || CellCoordinate.Y < 0)
 	{
-		replaceMapTilesTimer += FPlatformTime::Seconds() - functionTimer;
+		ReplaceMapTilesTimer += FPlatformTime::Seconds() - FunctionTimer;
 		return false;
 	}
 	
@@ -328,10 +326,10 @@ bool AWFC_Spawner::ReplaceMapTiles(TArray<int32> PossibleNeighbors, FVector2d Ce
 		//Replace maptiles array
 		MapTiles[CellCoordinate.X][CellCoordinate.Y].Empty();
 		MapTiles[CellCoordinate.X][CellCoordinate.Y].Append(TempArray);
-		replaceMapTilesTimer += FPlatformTime::Seconds() - functionTimer;
+		ReplaceMapTilesTimer += FPlatformTime::Seconds() - FunctionTimer;
 		return true;
 	}
-	replaceMapTilesTimer += FPlatformTime::Seconds() - functionTimer;
+	ReplaceMapTilesTimer += FPlatformTime::Seconds() - FunctionTimer;
 	return false;
 }
 
@@ -349,12 +347,12 @@ void AWFC_Spawner::AddCellToPropagationstack(FVector2d CellToBeAdded, TArray<FVe
 	{
 		PropagationCoordinateStack.AddUnique(CellToBeAdded);
 	}
-	addCellToPropagationStackTimer += FPlatformTime::Seconds() - functionTimer;
+	AddCellToPropagationStackTimer += FPlatformTime::Seconds() - functionTimer;
 }
 
 void AWFC_Spawner::RenderCurrentCellMeshes(FVector2d CellCoordinate)
 {
-	double functionTimer = FPlatformTime::Seconds();
+	double FunctionTimer = FPlatformTime::Seconds();
 	//Render Meshes
 	if (bSpawnDebugMeshes)
 	{
@@ -365,7 +363,7 @@ void AWFC_Spawner::RenderCurrentCellMeshes(FVector2d CellCoordinate)
 	}
 	FinalMeshes[CellCoordinate.X][CellCoordinate.Y]->SetStaticMesh(Prototypes[MapTiles[CellCoordinate.X][CellCoordinate.Y][0]].Mesh);
 	FinalMeshes[CellCoordinate.X][CellCoordinate.Y]->SetRelativeRotation(FRotator(0, Prototypes[MapTiles[CellCoordinate.X][CellCoordinate.Y][0]].Rotation * 90, 0));
-	renderCurrentCellMeshesTimer += FPlatformTime::Seconds() - functionTimer;
+	RenderCurrentCellMeshesTimer += FPlatformTime::Seconds() - FunctionTimer;
 }
 
 bool AWFC_Spawner::CheckIfFullyCollapsed()
@@ -383,6 +381,6 @@ bool AWFC_Spawner::CheckIfFullyCollapsed()
 			}
 		}
 	}
-	checkIfFullyCollapsedTimer += FPlatformTime::Seconds() - functionTimer;
+	CheckIfFullyCollapsedTimer += FPlatformTime::Seconds() - functionTimer;
 	return bFullyCollapsedYet;
 }
